@@ -428,7 +428,7 @@ async function addTrack(uri, btn) {
     console.log('Adding to playlist:', pid, 'URI:', uri);
 
     if (pid==='new'||!pid) {
-      var np = await sPost('/me/playlists',{name:'Music Scanner Discoveries',description:'Found with SCANR',public:false});
+      var np = await sPost('/me/playlists',{name:'Music Scanner Discoveries',description:'Found with SCANR',public:true});
       console.log('Created playlist:', np);
       pid=np.id;
       var sel=document.getElementById('playlist-select');
