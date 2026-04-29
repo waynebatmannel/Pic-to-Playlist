@@ -418,8 +418,7 @@ async function addTrack(uri, btn) {
   try {
     var pid = document.getElementById('playlist-select').value;
     if (pid==='new'||!pid) {
-      var me = await sGet('/me');
-      var np = await sPost('/users/'+me.id+'/playlists',{name:'Music Scanner Discoveries',description:'Found with SCANR',public:false});
+      var np = await sPost('/me/playlists',{name:'Music Scanner Discoveries',description:'Found with SCANR',public:false});
       pid=np.id;
       var sel=document.getElementById('playlist-select');
       var o=document.createElement('option'); o.value=pid; o.textContent='Music Scanner Discoveries'; o.selected=true; sel.appendChild(o);
@@ -460,7 +459,8 @@ function reconnect() {
     var p = new URLSearchParams({
       client_id: clientId, response_type: 'code',
       redirect_uri: window.location.origin + '/callback',
-      scope: SCOPES, code_challenge_method: 'S256', code_challenge: ch
+      scope: SCOPES, code_challenge_method: 'S256', code_challenge: ch,
+      show_dialog: 'true'
     });
     window.location.href = 'https://accounts.spotify.com/authorize?' + p.toString();
   });
