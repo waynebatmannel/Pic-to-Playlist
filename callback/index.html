@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SCANR — Connecting…</title>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root { --green: #1DB954; --bg: #0a0a0a; --text: #f0f0f0; --text-dim: #777; --red: #e84040; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .wrap { text-align: center; padding: 40px; }
+    .logo {
+      font-family: 'Anton', sans-serif;
+      font-size: 40px;
+      letter-spacing: -1px;
+      margin-bottom: 32px;
+    }
+    .logo span { color: var(--green); }
+    .spinner {
+      width: 44px; height: 44px;
+      border: 3px solid #242424;
+      border-top-color: var(--green);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .status { color: var(--text-dim); font-size: 14px; }
+    .error-msg { color: var(--red); font-size: 14px; margin-top: 16px; }
+    .retry-btn {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 12px 28px;
+      background: var(--green);
+      color: #000;
+      border-radius: 50px;
+      font-weight: 500;
+      font-size: 14px;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      font-family: 'DM Sans', sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="logo">SCAN<span>R</span></div>
+    <div class="spinner" id="spinner"></div>
+    <p class="status" id="status">Connecting to Spotify…</p>
+    <p class="error-msg" id="error-msg" style="display:none"></p>
+    <a href="/" class="retry-btn" id="retry-btn" style="display:none">← Try Again</a>
+  </div>
+
+  <script>
+    async function handleCallback() {
+      const params   = new URLSearchParams(window.location.search);
+      const code     = params.get('code');
+      const error    = params.get('error');
+
+      if (error || !code) {
+        showError('Spotify auth was denied or failed. ' + (error || ''));
+        return;
+      }
+
+      const clientId = localStorage.getItem('spotify_client_id');
+      const verifier = localStorage.getItem('pkce_verifier');
+
+      if (!clientId || !verifier) {
+        showError('Missing credentials. Please try again from the start.');
+        return;
+      }
+
+      document.getElementById('status').textContent = 'Exchanging token…';
+
+      try {
+        const body = new URLSearchParams({
+          client_id:     clientId,
+          grant_type:    'authorization_code',
+          code:          code,
+          redirect_uri:  window.location.origin + '/callback',
+          code_verifier: verifier,
+        });
+
+        const res  = await fetch('https://accounts.spotify.com/api/token', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body:    body.toString(),
+        });
+
+        const data = await res.json();
+
+        if (data.access_token) {
+          localStorage.setItem('spotify_token', data.access_token);
+          localStorage.setItem('spotify_token_expiry', Date.now() + (data.expires_in * 1000));
+          localStorage.removeItem('pkce_verifier');
+          document.getElementById('status').textContent = 'Connected! Redirecting…';
+          window.location.href = '/';
+        } else {
+          showError('Could not get access token: ' + (data.error_description || data.error || 'Unknown error'));
+        }
+      } catch(err) {
+        showError('Network error: ' + err.message);
+      }
+    }
+
+    function showError(msg) {
+      document.getElementById('spinner').style.display   = 'none';
+      document.getElementById('status').style.display    = 'none';
+      document.getElementById('error-msg').textContent   = msg;
+      document.getElementById('error-msg').style.display = 'block';
+      document.getElementById('retry-btn').style.display = 'inline-block';
+    }
+
+    handleCallback();
+  </script>
+</body>
+</html>
