@@ -4,383 +4,120 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SCANR — Music Discovery</title>
-  <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Mono:wght@400;500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0a0a0a;
-      --surface: #141414;
-      --border: #242424;
-      --green: #1DB954;
-      --green-dim: rgba(29, 185, 84, 0.1);
-      --text: #f0f0f0;
-      --text-dim: #777;
-      --red: #e84040;
+      --bg:        #0a0a0a;
+      --surface:   #141414;
+      --border:    #242424;
+      --green:     #1DB954;
+      --green-dim: rgba(29,185,84,0.1);
+      --text:      #f0f0f0;
+      --muted:     #777;
+      --red:       #e84040;
     }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; min-height:100vh; }
+    .container { max-width:640px; margin:0 auto; padding:40px 24px 80px; }
+    header { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:48px; }
+    .logo { font-family:'Anton',sans-serif; font-size:52px; letter-spacing:-1px; line-height:1; }
+    .logo span { color:var(--green); }
+    .tagline { font-size:11px; color:var(--muted); letter-spacing:0.12em; text-transform:uppercase; }
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    #setup-screen { display:none; }
+    #app-screen   { display:none; }
 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'DM Sans', sans-serif;
-      min-height: 100vh;
-    }
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:36px; }
+    .card h2 { font-family:'Anton',sans-serif; font-size:28px; margin-bottom:8px; }
+    .card p  { color:var(--muted); font-size:14px; line-height:1.6; margin-bottom:28px; }
 
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .container {
-      max-width: 640px;
-      margin: 0 auto;
-      padding: 40px 24px 80px;
-      position: relative;
-      z-index: 1;
-    }
-
-    header {
-      margin-bottom: 48px;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-    }
-
-    .logo {
-      font-family: 'Anton', sans-serif;
-      font-size: 52px;
-      letter-spacing: -1px;
-      line-height: 1;
-    }
-
-    .logo span { color: var(--green); }
-
-    .tagline {
-      font-size: 11px;
-      color: var(--text-dim);
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-    }
-
-    /* ---- SETUP ---- */
-    #setup-screen { display: none; }
-
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 40px;
-    }
-
-    .card h2 {
-      font-family: 'Anton', sans-serif;
-      font-size: 30px;
-      margin-bottom: 8px;
-    }
-
-    .card p {
-      color: var(--text-dim);
-      font-size: 14px;
-      line-height: 1.65;
-      margin-bottom: 28px;
-    }
-
-    .form-group { margin-bottom: 20px; }
-
-    label {
-      display: block;
-      font-size: 11px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-      margin-bottom: 8px;
-    }
-
+    .form-group { margin-bottom:18px; }
+    label { display:block; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); margin-bottom:7px; }
+    label .hint { color:var(--green); font-size:10px; letter-spacing:0; text-transform:none; }
     input[type="text"], select {
-      width: 100%;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 13px 16px;
-      border-radius: 10px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 14px;
-      outline: none;
-      transition: border-color 0.2s;
+      width:100%; background:var(--bg); border:1px solid var(--border);
+      color:var(--text); padding:13px 16px; border-radius:10px;
+      font-family:'DM Sans',sans-serif; font-size:14px; outline:none; transition:border-color 0.2s;
     }
-
-    input[type="text"]:focus, select:focus { border-color: var(--green); }
-
+    input[type="text"]:focus, select:focus { border-color:var(--green); }
     select {
-      appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23777' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 14px center;
-      cursor: pointer;
+      appearance:none;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23777' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat:no-repeat; background-position:right 14px center; cursor:pointer;
     }
 
     .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      padding: 14px 28px;
-      border-radius: 50px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 15px;
-      font-weight: 500;
-      cursor: pointer;
-      border: none;
-      transition: all 0.2s;
-      width: 100%;
+      display:inline-flex; align-items:center; justify-content:center; gap:10px;
+      padding:14px 28px; border-radius:50px; font-family:'DM Sans',sans-serif;
+      font-size:15px; font-weight:500; cursor:pointer; border:none; transition:all 0.2s; width:100%;
     }
-
-    .btn-green { background: var(--green); color: #000; }
-    .btn-green:hover { background: #1ed760; transform: translateY(-1px); }
-
-    .btn-outline {
-      background: transparent;
-      color: var(--text);
-      border: 1px solid var(--border);
-    }
-    .btn-outline:hover { border-color: var(--text-dim); }
-
-    /* ---- APP ---- */
-    #app-screen { display: none; }
+    .btn-green   { background:var(--green); color:#000; }
+    .btn-green:hover { background:#1ed760; transform:translateY(-1px); }
+    .btn-outline { background:transparent; color:var(--text); border:1px solid var(--border); }
+    .btn-outline:hover { border-color:var(--muted); }
 
     .user-bar {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 50px;
-      padding: 8px 16px 8px 8px;
-      margin-bottom: 32px;
+      display:flex; align-items:center; gap:10px;
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:50px; padding:8px 16px 8px 8px; margin-bottom:28px;
     }
+    .avatar { width:32px; height:32px; border-radius:50%; background:var(--green); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:#000; flex-shrink:0; }
+    .user-name  { font-size:14px; font-weight:500; flex:1; }
+    .conn-badge { font-size:11px; color:var(--green); text-transform:uppercase; letter-spacing:.05em; }
 
-    .avatar {
-      width: 32px; height: 32px;
-      border-radius: 50%;
-      background: var(--green);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px; font-weight: 700; color: #000;
-      flex-shrink: 0;
-    }
+    .upload-zone { border:2px dashed var(--border); border-radius:20px; padding:56px 32px; text-align:center; cursor:pointer; transition:all 0.25s; position:relative; }
+    .upload-zone:hover, .upload-zone.over { border-color:var(--green); background:var(--green-dim); }
+    .upload-zone input[type="file"] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+    .upload-icon { font-size:44px; margin-bottom:14px; }
+    .upload-zone h3 { font-family:'Anton',sans-serif; font-size:22px; margin-bottom:6px; }
+    .upload-zone p  { color:var(--muted); font-size:13px; }
 
-    .user-name { font-size: 14px; font-weight: 500; flex: 1; }
+    .preview-wrap { margin-top:20px; display:none; }
+    .preview-wrap img { width:100%; max-height:280px; object-fit:contain; border-radius:12px; border:1px solid var(--border); }
 
-    .connected-badge {
-      font-size: 11px;
-      color: var(--green);
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-    }
+    .progress-wrap { margin-top:16px; display:none; }
+    .progress-track { background:var(--border); border-radius:50px; height:3px; overflow:hidden; }
+    .progress-fill  { height:100%; background:var(--green); border-radius:50px; width:0%; transition:width 0.3s; }
+    .progress-label { font-size:12px; color:var(--muted); margin-top:8px; text-align:center; }
 
-    .upload-zone {
-      border: 2px dashed var(--border);
-      border-radius: 20px;
-      padding: 56px 32px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.25s;
-      position: relative;
-    }
+    .results { display:none; margin-top:32px; }
+    .divider  { height:1px; background:var(--border); margin:28px 0; }
+    .section-title { font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
+    .ocr-text { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px 16px; font-family:'DM Mono',monospace; font-size:12px; color:var(--muted); white-space:pre-wrap; max-height:110px; overflow-y:auto; margin-bottom:20px; line-height:1.5; }
+    .fields-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px; }
+    .playlist-row { margin-bottom:16px; }
 
-    .upload-zone:hover, .upload-zone.over {
-      border-color: var(--green);
-      background: var(--green-dim);
-    }
+    .track-list { display:flex; flex-direction:column; gap:8px; margin-top:16px; }
+    .track-item { display:flex; align-items:center; gap:14px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:10px 14px; transition:all 0.2s; }
+    .track-item:hover { border-color:var(--green); background:var(--green-dim); }
+    .track-art  { width:46px; height:46px; border-radius:6px; object-fit:cover; background:var(--border); flex-shrink:0; }
+    .track-info { flex:1; min-width:0; }
+    .track-name { font-weight:500; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .track-sub  { font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
+    .add-btn { width:34px; height:34px; border-radius:50%; background:var(--green); border:none; color:#000; font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all 0.2s; }
+    .add-btn:hover { transform:scale(1.1); background:#1ed760; }
+    .add-btn.done  { background:var(--border); color:var(--green); font-size:16px; cursor:default; }
 
-    .upload-zone input[type="file"] {
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      cursor: pointer;
-      width: 100%;
-      height: 100%;
-    }
+    .scan-again { text-align:center; margin-top:28px; }
+    .empty-msg  { text-align:center; color:var(--muted); font-size:14px; padding:20px 0; }
 
-    .upload-icon { font-size: 44px; margin-bottom: 14px; }
-
-    .upload-zone h3 {
-      font-family: 'Anton', sans-serif;
-      font-size: 22px;
-      margin-bottom: 6px;
-    }
-
-    .upload-zone p { color: var(--text-dim); font-size: 13px; }
-
-    /* Preview */
-    .preview-wrap { margin-top: 20px; display: none; }
-
-    .preview-wrap img {
-      width: 100%;
-      max-height: 280px;
-      object-fit: contain;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-    }
-
-    /* Progress */
-    .progress-wrap { margin-top: 16px; display: none; }
-
-    .progress-track {
-      background: var(--border);
-      border-radius: 50px;
-      height: 3px;
-      overflow: hidden;
-    }
-
-    .progress-fill {
-      height: 100%;
-      background: var(--green);
-      border-radius: 50px;
-      width: 0%;
-      transition: width 0.3s;
-    }
-
-    .progress-label {
-      font-size: 12px;
-      color: var(--text-dim);
-      margin-top: 8px;
-      text-align: center;
-    }
-
-    /* Results */
-    .results { display: none; margin-top: 32px; }
-
-    .divider { height: 1px; background: var(--border); margin: 28px 0; }
-
-    .section-title {
-      font-size: 11px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-      margin-bottom: 10px;
-    }
-
-    .ocr-text {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 14px 16px;
-      font-family: 'DM Mono', monospace;
-      font-size: 12px;
-      color: var(--text-dim);
-      white-space: pre-wrap;
-      max-height: 110px;
-      overflow-y: auto;
-      margin-bottom: 20px;
-      line-height: 1.5;
-    }
-
-    .fields-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-      margin-bottom: 16px;
-    }
-
-    .playlist-row { margin-bottom: 16px; }
-
-    /* Track results */
-    .track-list { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
-
-    .track-item {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 10px 14px;
-      transition: all 0.2s;
-    }
-
-    .track-item:hover { border-color: var(--green); background: var(--green-dim); }
-
-    .track-art {
-      width: 46px; height: 46px;
-      border-radius: 6px;
-      object-fit: cover;
-      background: var(--border);
-      flex-shrink: 0;
-    }
-
-    .track-info { flex: 1; min-width: 0; }
-
-    .track-name {
-      font-weight: 500;
-      font-size: 14px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .track-sub {
-      font-size: 12px;
-      color: var(--text-dim);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      margin-top: 2px;
-    }
-
-    .add-btn {
-      width: 34px; height: 34px;
-      border-radius: 50%;
-      background: var(--green);
-      border: none;
-      color: #000;
-      font-size: 20px;
-      line-height: 1;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-      transition: all 0.2s;
-    }
-
-    .add-btn:hover { transform: scale(1.1); background: #1ed760; }
-    .add-btn.done { background: var(--border); color: var(--green); font-size: 16px; cursor: default; }
-
-    .scan-again { text-align: center; margin-top: 28px; }
-
-    /* Toast */
     .toast {
-      position: fixed;
-      bottom: 28px; left: 50%;
-      transform: translateX(-50%) translateY(120px);
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 50px;
-      padding: 13px 24px;
-      font-size: 14px; font-weight: 500;
-      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-      z-index: 999;
-      white-space: nowrap;
+      position:fixed; bottom:28px; left:50%;
+      transform:translateX(-50%) translateY(120px);
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:50px; padding:13px 24px; font-size:14px; font-weight:500;
+      transition:transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+      z-index:999; white-space:nowrap; max-width:90vw; overflow:hidden; text-overflow:ellipsis;
     }
+    .toast.show    { transform:translateX(-50%) translateY(0); }
+    .toast.success { border-color:var(--green); color:var(--green); }
+    .toast.error   { border-color:var(--red);   color:var(--red); }
 
-    .toast.show { transform: translateX(-50%) translateY(0); }
-    .toast.success { border-color: var(--green); color: var(--green); }
-    .toast.error { border-color: var(--red); color: var(--red); }
-
-    .empty-msg {
-      text-align: center;
-      color: var(--text-dim);
-      font-size: 14px;
-      padding: 20px 0;
-    }
-
-    @media (max-width: 480px) {
-      .fields-row { grid-template-columns: 1fr; }
-      .logo { font-size: 40px; }
-      .card { padding: 28px 24px; }
-      .upload-zone { padding: 40px 24px; }
+    @media (max-width:480px) {
+      .fields-row { grid-template-columns:1fr; }
+      .logo { font-size:40px; }
+      .card { padding:24px; }
+      .upload-zone { padding:40px 20px; }
     }
   </style>
 </head>
@@ -391,18 +128,18 @@
     <div class="tagline">Music Discovery</div>
   </header>
 
-  <!-- SETUP SCREEN -->
+  <!-- SETUP -->
   <div id="setup-screen">
     <div class="card">
       <h2>Connect Spotify</h2>
-      <p>Enter your Spotify App Client ID once to get started. You can find it in your Spotify Developer Dashboard under your app settings.</p>
+      <p>Enter your credentials once to get started. Spotify Client ID is from your Spotify Developer Dashboard. Groq key is free at console.groq.com — no credit card needed.</p>
       <div class="form-group">
         <label>Spotify Client ID</label>
-        <input type="text" id="client-id-input" placeholder="Paste your Spotify Client ID..." autocomplete="off" />
+        <input type="text" id="client-id-input" placeholder="Paste your Spotify Client ID..." autocomplete="off" spellcheck="false" />
       </div>
       <div class="form-group">
-        <label>Groq API Key <span style="color:var(--green);font-size:10px;letter-spacing:0">— free at console.groq.com</span></label>
-        <input type="text" id="gemini-key-input" placeholder="Paste your Groq API key (gsk_...)..." autocomplete="off" />
+        <label>Groq API Key <span class="hint">— free at console.groq.com</span></label>
+        <input type="text" id="groq-key-input" placeholder="Paste your Groq key (gsk_...)..." autocomplete="off" spellcheck="false" />
       </div>
       <button class="btn btn-green" onclick="connectSpotify()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
@@ -411,19 +148,19 @@
     </div>
   </div>
 
-  <!-- APP SCREEN -->
+  <!-- APP -->
   <div id="app-screen">
     <div class="user-bar">
       <div class="avatar" id="user-avatar">?</div>
       <div class="user-name" id="user-name">Loading...</div>
-      <div class="connected-badge">● Spotify</div>
+      <div class="conn-badge">&#9679; Spotify</div>
     </div>
 
     <div class="upload-zone" id="upload-zone">
-      <input type="file" id="file-input" accept="image/*" onchange="handleFile(this.files[0])" />
-      <div class="upload-icon">📸</div>
+      <input type="file" id="file-input" accept="image/*" />
+      <div class="upload-icon">&#128248;</div>
       <h3>Drop your screenshot here</h3>
-      <p>Tap to upload from your Pixel · PNG or JPG</p>
+      <p>Tap to upload from your Pixel &middot; PNG or JPG</p>
     </div>
 
     <div class="preview-wrap" id="preview-wrap">
@@ -431,19 +168,15 @@
     </div>
 
     <div class="progress-wrap" id="progress-wrap">
-      <div class="progress-track">
-        <div class="progress-fill" id="progress-fill"></div>
-      </div>
+      <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
       <div class="progress-label" id="progress-label">Scanning...</div>
     </div>
 
     <div class="results" id="results">
       <div class="divider"></div>
-
       <div class="section-title">Extracted Text</div>
       <div class="ocr-text" id="ocr-text"></div>
-
-      <div class="section-title">Confirm Artist & Song</div>
+      <div class="section-title">Confirm Artist &amp; Song</div>
       <div class="fields-row">
         <div class="form-group">
           <label>Artist / Band</label>
@@ -454,24 +187,14 @@
           <input type="text" id="song-input" placeholder="Song title..." />
         </div>
       </div>
-
       <div class="playlist-row">
         <div class="section-title">Add to Playlist</div>
-        <select id="playlist-select">
-          <option value="">Loading playlists...</option>
-        </select>
+        <select id="playlist-select"><option value="">Loading playlists...</option></select>
       </div>
-
-      <button class="btn btn-green" onclick="searchSpotify()" id="search-btn">
-        🔍 &nbsp;Search Spotify
-      </button>
-
+      <button class="btn btn-green" onclick="searchSpotify()" id="search-btn">&#128269; &nbsp;Search Spotify</button>
       <div class="track-list" id="track-list"></div>
-
       <div class="scan-again" id="scan-again" style="display:none">
-        <button class="btn btn-outline" style="width:auto; padding: 12px 32px;" onclick="resetApp()">
-          ↩ &nbsp;Scan Another
-        </button>
+        <button class="btn btn-outline" style="width:auto;padding:12px 32px" onclick="resetApp()">&#8617; &nbsp;Scan Another</button>
       </div>
     </div>
   </div>
@@ -479,357 +202,261 @@
 
 <div class="toast" id="toast"></div>
 
-
 <script>
-  const SCOPES = 'playlist-modify-public playlist-modify-private playlist-read-private user-read-private user-read-email';
-  let accessToken = null;
+var spotifyToken = null;
+var SCOPES = 'playlist-modify-public playlist-modify-private playlist-read-private user-read-private user-read-email';
 
-  // ── INIT ──────────────────────────────────────────────────────────────────
-  async function init() {
-    accessToken = localStorage.getItem('spotify_token');
-    const expiry  = localStorage.getItem('spotify_token_expiry');
+window.addEventListener('DOMContentLoaded', function() {
+  spotifyToken = localStorage.getItem('spotify_token');
+  var expiry   = localStorage.getItem('spotify_token_expiry');
 
-    if (accessToken && expiry && Date.now() < parseInt(expiry)) {
-      showApp();
-      await loadUser();
-    } else {
-      localStorage.removeItem('spotify_token');
-      localStorage.removeItem('spotify_token_expiry');
-      showSetup();
-    }
+  if (spotifyToken && expiry && Date.now() < parseInt(expiry, 10)) {
+    showApp();
+    loadUser();
+  } else {
+    localStorage.removeItem('spotify_token');
+    localStorage.removeItem('spotify_token_expiry');
+    showSetup();
   }
 
-  function showSetup() {
-    document.getElementById('setup-screen').style.display = 'block';
-    document.getElementById('app-screen').style.display   = 'none';
-    const saved = localStorage.getItem('spotify_client_id');
-    if (saved) document.getElementById('client-id-input').value = saved;
-    const savedGemini = localStorage.getItem('gemini_key');
-    if (savedGemini) document.getElementById('gemini-key-input').value = savedGemini;
-  }
-
-  function showApp() {
-    document.getElementById('setup-screen').style.display = 'none';
-    document.getElementById('app-screen').style.display   = 'block';
-  }
-
-  // ── AUTH (PKCE) ────────────────────────────────────────────────────────────
-  async function connectSpotify() {
-    const clientId   = document.getElementById('client-id-input').value.trim();
-    const geminiKey  = document.getElementById('gemini-key-input').value.trim();
-    if (!clientId)  { toast('Please enter your Spotify Client ID', 'error'); return; }
-    if (!geminiKey) { toast('Please enter your Gemini API key', 'error'); return; }
-    localStorage.setItem('spotify_client_id', clientId);
-    localStorage.setItem('gemini_key', geminiKey);
-
-    const verifier  = randomString(128);
-    const challenge = await sha256base64url(verifier);
-    localStorage.setItem('pkce_verifier', verifier);
-
-    const params = new URLSearchParams({
-      client_id:             clientId,
-      response_type:         'code',
-      redirect_uri:          window.location.origin + '/callback',
-      scope:                 SCOPES,
-      code_challenge_method: 'S256',
-      code_challenge:        challenge,
-    });
-    window.location.href = 'https://accounts.spotify.com/authorize?' + params;
-  }
-
-  function randomString(len) {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
-    const buf = new Uint8Array(len);
-    crypto.getRandomValues(buf);
-    return Array.from(buf, b => chars[b % chars.length]).join('');
-  }
-
-  async function sha256base64url(str) {
-    const data   = new TextEncoder().encode(str);
-    const digest = await crypto.subtle.digest('SHA-256', data);
-    return btoa(String.fromCharCode(...new Uint8Array(digest)))
-      .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-  }
-
-  // ── USER / PLAYLISTS ───────────────────────────────────────────────────────
-  async function loadUser() {
-    try {
-      const me = await spotifyGet('/me');
-      document.getElementById('user-name').textContent   = me.display_name || me.id;
-      document.getElementById('user-avatar').textContent = (me.display_name || me.id)[0].toUpperCase();
-
-      const pl = await spotifyGet('/me/playlists?limit=50');
-      const sel = document.getElementById('playlist-select');
-      sel.innerHTML = '<option value="new">+ Create "Music Scanner Discoveries"</option>';
-      pl.items.forEach(p => {
-        sel.innerHTML += `<option value="${p.id}">${p.name}</option>`;
-      });
-    } catch(e) {
-      console.error(e);
-      showSetup();
-    }
-  }
-
-  // ── FILE / OCR ─────────────────────────────────────────────────────────────
-  function handleFile(file) {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = e => {
-      document.getElementById('preview-img').src = e.target.result;
-      document.getElementById('preview-wrap').style.display = 'block';
-      runOCR(file);
-    };
-    reader.readAsDataURL(file);
-  }
-
-  const zone = document.getElementById('upload-zone');
-  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('over'); });
-  zone.addEventListener('dragleave', () => zone.classList.remove('over'));
-  zone.addEventListener('drop', e => {
-    e.preventDefault(); zone.classList.remove('over');
-    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  document.getElementById('file-input').addEventListener('change', function() {
+    if (this.files && this.files[0]) handleFile(this.files[0]);
   });
 
-  // Convert file to base64 for Claude Vision
-  function fileToBase64(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result.split(',')[1]);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  }
+  var zone = document.getElementById('upload-zone');
+  zone.addEventListener('dragover',  function(e) { e.preventDefault(); zone.classList.add('over'); });
+  zone.addEventListener('dragleave', function()  { zone.classList.remove('over'); });
+  zone.addEventListener('drop',      function(e) {
+    e.preventDefault(); zone.classList.remove('over');
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+});
 
-  async function runOCR(file) {
-    const pw = document.getElementById('progress-wrap');
-    const pf = document.getElementById('progress-fill');
-    const pl = document.getElementById('progress-label');
-    pw.style.display = 'block';
+function showSetup() {
+  document.getElementById('setup-screen').style.display = 'block';
+  document.getElementById('app-screen').style.display   = 'none';
+  var cid  = localStorage.getItem('spotify_client_id');
+  var gkey = localStorage.getItem('groq_key');
+  if (cid)  document.getElementById('client-id-input').value = cid;
+  if (gkey) document.getElementById('groq-key-input').value  = gkey;
+}
+
+function showApp() {
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display   = 'block';
+}
+
+async function connectSpotify() {
+  var clientId = document.getElementById('client-id-input').value.trim();
+  var groqKey  = document.getElementById('groq-key-input').value.trim();
+  if (!clientId) { showToast('Please enter your Spotify Client ID', 'error'); return; }
+  if (!groqKey)  { showToast('Please enter your Groq API key', 'error'); return; }
+  localStorage.setItem('spotify_client_id', clientId);
+  localStorage.setItem('groq_key', groqKey);
+
+  var verifier  = genVerifier(128);
+  var challenge = await genChallenge(verifier);
+  localStorage.setItem('pkce_verifier', verifier);
+
+  var p = new URLSearchParams({
+    client_id: clientId, response_type: 'code',
+    redirect_uri: window.location.origin + '/callback',
+    scope: SCOPES, code_challenge_method: 'S256', code_challenge: challenge
+  });
+  window.location.href = 'https://accounts.spotify.com/authorize?' + p.toString();
+}
+
+function genVerifier(n) {
+  var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+  var arr = new Uint8Array(n);
+  crypto.getRandomValues(arr);
+  return Array.from(arr, function(b) { return chars[b % chars.length]; }).join('');
+}
+
+async function genChallenge(v) {
+  var d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v));
+  return btoa(String.fromCharCode.apply(null, new Uint8Array(d)))
+    .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+
+async function loadUser() {
+  try {
+    var me = await sGet('/me');
+    document.getElementById('user-avatar').textContent = (me.display_name || me.id || '?')[0].toUpperCase();
+    document.getElementById('user-name').textContent   = me.display_name || me.id;
+    var pl = await sGet('/me/playlists?limit=50');
+    var sel = document.getElementById('playlist-select');
+    sel.innerHTML = '<option value="new">+ Create "Music Scanner Discoveries"</option>';
+    pl.items.forEach(function(p) {
+      var o = document.createElement('option');
+      o.value = p.id; o.textContent = p.name; sel.appendChild(o);
+    });
+  } catch(e) { console.error(e); showSetup(); }
+}
+
+function handleFile(file) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    document.getElementById('preview-img').src = e.target.result;
+    document.getElementById('preview-wrap').style.display = 'block';
     document.getElementById('results').style.display = 'none';
-    pl.textContent = 'Analysing with AI...';
-    pf.style.width = '30%';
+    document.getElementById('track-list').innerHTML = '';
+    document.getElementById('scan-again').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+  runOCR(file);
+}
 
-    const geminiKey = localStorage.getItem('gemini_key');
-    if (!geminiKey) {
-      pw.style.display = 'none';
-      toast('Add your Gemini API key in settings', 'error');
-      document.getElementById('gemini-setup').style.display = 'block';
-      return;
-    }
+function toBase64(file) {
+  return new Promise(function(res, rej) {
+    var r = new FileReader();
+    r.onload = function() { res(r.result.split(',')[1]); };
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
 
-    try {
-      const base64    = await fileToBase64(file);
-      const mediaType = file.type || 'image/png';
-      pf.style.width  = '60%';
-      pl.textContent  = 'Extracting music details...';
+async function runOCR(file) {
+  var pw = document.getElementById('progress-wrap');
+  var pf = document.getElementById('progress-fill');
+  var pl = document.getElementById('progress-label');
+  pw.style.display = 'block'; pf.style.width = '20%'; pl.textContent = 'Preparing...';
 
-      const response = await fetch(
-        'https://api.groq.com/openai/v1/chat/completions',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${geminiKey}`
-          },
-          body: JSON.stringify({
-            model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-            max_tokens: 300,
-            messages: [{
-              role: 'user',
-              content: [
-                { type: 'image_url', image_url: { url: `data:${mediaType};base64,${base64}` } },
-                { type: 'text', text: `This is a screenshot of a music review or social media post. Find the band/artist name and song title visible in the image.
+  var groqKey = localStorage.getItem('groq_key');
+  if (!groqKey) { pw.style.display='none'; showToast('No Groq key — please reconnect','error'); showSetup(); return; }
 
-Reply ONLY with valid JSON, no extra text:
-{"artist":"Artist Name","song":"Song Title","raw_text":"all visible text in the image"}
+  try {
+    var b64 = await toBase64(file);
+    var mt  = file.type || 'image/jpeg';
+    pf.style.width='50%'; pl.textContent='Analysing with AI...';
 
-If no song title is visible leave song as empty string.` }
-              ]
-            }]
-          })
-        }
-      );
-
-      pf.style.width = '100%';
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        const errMsg  = errData?.error?.message || ('HTTP ' + response.status);
-        throw new Error(errMsg);
-      }
-
-      const data    = await response.json();
-      if (!response.ok) {
-        const errMsg = data?.error?.message || ('HTTP ' + response.status);
-        throw new Error(errMsg);
-      }
-      const rawText = data.choices?.[0]?.message?.content || '';
-      if (!rawText) throw new Error('Empty response from AI');
-      const clean   = rawText.replace(/```json|```/g, '').trim();
-      let parsed;
-      try { parsed = JSON.parse(clean); }
-      catch(e) { throw new Error('Parse error: ' + rawText.substring(0, 80)); }
-
-      pw.style.display = 'none';
-      showResults(parsed.raw_text || '', parsed.artist || '', parsed.song || '');
-
-    } catch(err) {
-      console.error('Scan error:', err);
-      pw.style.display = 'none';
-      document.getElementById('results').style.display = 'block';
-      document.getElementById('ocr-text').textContent = 'Error: ' + err.message;
-      document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
-      toast('Error: ' + err.message.substring(0, 60), 'error');
-    }
-  }
-
-  function showResults(text, artist, song) {
-    document.getElementById('ocr-text').textContent = text;
-    document.getElementById('results').style.display = 'block';
-
-    // Use AI-extracted values directly if provided
-    if (artist || song) {
-      document.getElementById('artist-input').value = artistF;
-      document.getElementById('song-input').value   = songF;
-      document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
-      return;
-    }
-
-    // Fallback: parse text manually
-    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 1);
-    let artistF = '', songF = '';
-
-    for (const line of lines) {
-      if (line.includes(' - ') && !artistF) {
-        const parts = line.split(' - ');
-        artistF = parts[0].trim();
-        songF   = parts.slice(1).join(' - ').trim();
-        break;
-      }
-      const byIdx = line.toLowerCase().indexOf(' by ');
-      if (byIdx > -1 && !artistF) {
-        songF   = line.substring(0, byIdx).trim();
-        artistF = line.substring(byIdx + 4).trim();
-        break;
-      }
-    }
-
-    // Fallback: first two lines
-    if (!artistF && lines[0]) artistF = lines[0];
-    if (!songF   && lines[1]) songF   = lines[1];
-
-    document.getElementById('artist-input').value = artistF;
-    document.getElementById('song-input').value   = songF;
-
-    document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-
-  // ── SEARCH ─────────────────────────────────────────────────────────────────
-  async function searchSpotify() {
-    const artist = document.getElementById('artist-input').value.trim();
-    const song   = document.getElementById('song-input').value.trim();
-    if (!artist && !song) { toast('Enter an artist or song first', 'error'); return; }
-
-    const btn = document.getElementById('search-btn');
-    btn.textContent = 'Searching...';
-    btn.disabled    = true;
-
-    try {
-      let q = [];
-      if (song)   q.push('track:'  + song);
-      if (artist) q.push('artist:' + artist);
-      const data  = await spotifyGet(`/search?q=${encodeURIComponent(q.join(' '))}&type=track&limit=5`);
-      renderTracks(data.tracks?.items || []);
-    } finally {
-      btn.innerHTML = '🔍 &nbsp;Search Spotify';
-      btn.disabled  = false;
-    }
-  }
-
-  function renderTracks(tracks) {
-    const list = document.getElementById('track-list');
-    document.getElementById('scan-again').style.display = 'block';
-
-    if (!tracks.length) {
-      list.innerHTML = '<p class="empty-msg">No results — try editing the fields above</p>';
-      return;
-    }
-
-    list.innerHTML = tracks.map(t => `
-      <div class="track-item">
-        <img class="track-art" src="${t.album.images[2]?.url || ''}" alt="" />
-        <div class="track-info">
-          <div class="track-name">${t.name}</div>
-          <div class="track-sub">${t.artists.map(a=>a.name).join(', ')} · ${t.album.name}</div>
-        </div>
-        <button class="add-btn" onclick="addTrack('${t.uri}', this)" title="Add to playlist">+</button>
-      </div>
-    `).join('');
-  }
-
-  // ── ADD TO PLAYLIST ────────────────────────────────────────────────────────
-  async function addTrack(uri, btn) {
-    btn.disabled    = true;
-    btn.textContent = '…';
-
-    try {
-      let playlistId = document.getElementById('playlist-select').value;
-
-      if (playlistId === 'new' || !playlistId) {
-        const me = await spotifyGet('/me');
-        const pl = await spotifyPost(`/users/${me.id}/playlists`, {
-          name:        'Music Scanner Discoveries',
-          description: 'Tracks found with SCANR',
-          public:      false
-        });
-        playlistId = pl.id;
-
-        const sel = document.getElementById('playlist-select');
-        const opt = new Option('Music Scanner Discoveries', playlistId, true, true);
-        sel.appendChild(opt);
-      }
-
-      await spotifyPost(`/playlists/${playlistId}/tracks`, { uris: [uri] });
-      btn.textContent = '✓';
-      btn.classList.add('done');
-      toast('✓ Added to playlist!', 'success');
-    } catch(e) {
-      btn.disabled    = false;
-      btn.textContent = '+';
-      toast('Failed to add track', 'error');
-    }
-  }
-
-  // ── SPOTIFY HELPERS ────────────────────────────────────────────────────────
-  async function spotifyGet(path) {
-    const r = await fetch('https://api.spotify.com/v1' + path, {
-      headers: { Authorization: 'Bearer ' + accessToken }
+    var resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+groqKey },
+      body: JSON.stringify({
+        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+        max_tokens: 400,
+        messages: [{ role:'user', content:[
+          { type:'image_url', image_url:{ url:'data:'+mt+';base64,'+b64 } },
+          { type:'text', text:'This is a screenshot of a music review or social media post. Find the band/artist name and song title.\n\nReply ONLY with valid JSON:\n{"artist":"Artist Name","song":"Song Title","raw_text":"all text in the image"}\n\nLeave song empty string if not visible.' }
+        ]}]
+      })
     });
-    if (!r.ok) throw new Error('Spotify error ' + r.status);
-    return r.json();
-  }
 
-  async function spotifyPost(path, body) {
-    const r = await fetch('https://api.spotify.com/v1' + path, {
-      method:  'POST',
-      headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
-      body:    JSON.stringify(body)
-    });
-    if (!r.ok) throw new Error('Spotify error ' + r.status);
-    return r.json();
-  }
+    pf.style.width='90%';
+    var data = await resp.json();
 
-  // ── UTILS ──────────────────────────────────────────────────────────────────
-  function toast(msg, type = '') {
-    const el = document.getElementById('toast');
-    el.textContent = msg;
-    el.className   = 'toast ' + type;
-    el.classList.add('show');
-    setTimeout(() => el.classList.remove('show'), 3000);
-  }
+    if (!resp.ok) {
+      throw new Error((data && data.error && data.error.message) ? data.error.message : 'HTTP '+resp.status);
+    }
 
-  function resetApp() {
-    document.getElementById('file-input').value = '';
-    document.getElementById('preview-wrap').style.display  = 'none';
-    document.getElementById('results').style.display       = 'none';
-    document.getElementById('track-list').innerHTML        = '';
-    document.getElementById('scan-again').style.display    = 'none
+    var txt = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content ? data.choices[0].message.content : '';
+    if (!txt) throw new Error('Empty AI response');
+
+    var clean = txt.replace(/```json/g,'').replace(/```/g,'').trim();
+    var parsed;
+    try { parsed = JSON.parse(clean); } catch(e) { throw new Error('AI said: '+txt.substring(0,120)); }
+
+    pf.style.width='100%'; pw.style.display='none';
+    showResults(parsed.raw_text||'', parsed.artist||'', parsed.song||'');
+
+  } catch(err) {
+    console.error(err);
+    pw.style.display='none';
+    document.getElementById('results').style.display='block';
+    document.getElementById('ocr-text').textContent='Error: '+err.message;
+    document.getElementById('results').scrollIntoView({behavior:'smooth'});
+    showToast('Error: '+err.message.substring(0,50),'error');
+  }
+}
+
+function showResults(raw, artist, song) {
+  document.getElementById('ocr-text').textContent  = raw || '(no raw text extracted)';
+  document.getElementById('artist-input').value    = artist;
+  document.getElementById('song-input').value      = song;
+  document.getElementById('results').style.display = 'block';
+  document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+async function searchSpotify() {
+  var artist = document.getElementById('artist-input').value.trim();
+  var song   = document.getElementById('song-input').value.trim();
+  if (!artist && !song) { showToast('Enter artist or song first','error'); return; }
+  var btn = document.getElementById('search-btn');
+  btn.textContent='Searching...'; btn.disabled=true;
+  try {
+    var q = [];
+    if (song)   q.push('track:'+song);
+    if (artist) q.push('artist:'+artist);
+    var d = await sGet('/search?q='+encodeURIComponent(q.join(' '))+'&type=track&limit=5');
+    renderTracks(d.tracks && d.tracks.items ? d.tracks.items : []);
+  } catch(e) { showToast('Search failed: '+e.message,'error'); }
+  finally { btn.innerHTML='&#128269; &nbsp;Search Spotify'; btn.disabled=false; }
+}
+
+function renderTracks(tracks) {
+  var list = document.getElementById('track-list');
+  document.getElementById('scan-again').style.display='block';
+  if (!tracks.length) { list.innerHTML='<p class="empty-msg">No results — try editing the fields</p>'; return; }
+  list.innerHTML = tracks.map(function(t) {
+    var img = t.album.images && t.album.images[2] ? t.album.images[2].url : '';
+    var art = t.artists.map(function(a){return esc(a.name);}).join(', ');
+    return '<div class="track-item">'+
+      '<img class="track-art" src="'+img+'" alt="" />'+
+      '<div class="track-info">'+
+        '<div class="track-name">'+esc(t.name)+'</div>'+
+        '<div class="track-sub">'+art+' &middot; '+esc(t.album.name)+'</div>'+
+      '</div>'+
+      '<button class="add-btn" onclick="addTrack(\''+t.uri+'\',this)">+</button>'+
+    '</div>';
+  }).join('');
+}
+
+async function addTrack(uri, btn) {
+  btn.disabled=true; btn.textContent='...';
+  try {
+    var pid = document.getElementById('playlist-select').value;
+    if (pid==='new'||!pid) {
+      var me = await sGet('/me');
+      var np = await sPost('/users/'+me.id+'/playlists',{name:'Music Scanner Discoveries',description:'Found with SCANR',public:false});
+      pid=np.id;
+      var sel=document.getElementById('playlist-select');
+      var o=document.createElement('option'); o.value=pid; o.textContent='Music Scanner Discoveries'; o.selected=true; sel.appendChild(o);
+    }
+    await sPost('/playlists/'+pid+'/tracks',{uris:[uri]});
+    btn.textContent='&#10003;'; btn.classList.add('done');
+    showToast('&#10003; Added to playlist!','success');
+  } catch(e) { btn.disabled=false; btn.textContent='+'; showToast('Failed: '+e.message,'error'); }
+}
+
+async function sGet(path) {
+  var r = await fetch('https://api.spotify.com/v1'+path,{headers:{'Authorization':'Bearer '+spotifyToken}});
+  if (!r.ok) throw new Error('Spotify '+r.status);
+  return r.json();
+}
+async function sPost(path,body) {
+  var r = await fetch('https://api.spotify.com/v1'+path,{method:'POST',headers:{'Authorization':'Bearer '+spotifyToken,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if (!r.ok) throw new Error('Spotify '+r.status);
+  return r.json();
+}
+
+function showToast(msg,type) {
+  var el=document.getElementById('toast');
+  el.textContent=msg; el.className='toast'+(type?' '+type:''); el.classList.add('show');
+  setTimeout(function(){el.classList.remove('show');},3500);
+}
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function resetApp() {
+  document.getElementById('file-input').value='';
+  document.getElementById('preview-wrap').style.display='none';
+  document.getElementById('results').style.display='none';
+  document.getElementById('track-list').innerHTML='';
+  document.getElementById('scan-again').style.display='none';
+  document.getElementById('ocr-text').textContent='';
+  document.getElementById('artist-input').value='';
+  document.getElementById('song-input').value='';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+</script>
+</body>
+</html>
