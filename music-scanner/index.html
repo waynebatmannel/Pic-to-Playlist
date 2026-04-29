@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SCANR — Music Discovery</title>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Mono:wght@400;500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --surface: #141414;
+      --border: #242424;
+      --green: #1DB954;
+      --green-dim: rgba(29, 185, 84, 0.1);
+      --text: #f0f0f0;
+      --text-dim: #777;
+      --red: #e84040;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+      position: relative;
+      z-index: 1;
+    }
+
+    header {
+      margin-bottom: 48px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .logo {
+      font-family: 'Anton', sans-serif;
+      font-size: 52px;
+      letter-spacing: -1px;
+      line-height: 1;
+    }
+
+    .logo span { color: var(--green); }
+
+    .tagline {
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    /* ---- SETUP ---- */
+    #setup-screen { display: none; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px;
+    }
+
+    .card h2 {
+      font-family: 'Anton', sans-serif;
+      font-size: 30px;
+      margin-bottom: 8px;
+    }
+
+    .card p {
+      color: var(--text-dim);
+      font-size: 14px;
+      line-height: 1.65;
+      margin-bottom: 28px;
+    }
+
+    .form-group { margin-bottom: 20px; }
+
+    label {
+      display: block;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+
+    input[type="text"], select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 13px 16px;
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus, select:focus { border-color: var(--green); }
+
+    select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23777' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      cursor: pointer;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 14px 28px;
+      border-radius: 50px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      width: 100%;
+    }
+
+    .btn-green { background: var(--green); color: #000; }
+    .btn-green:hover { background: #1ed760; transform: translateY(-1px); }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-outline:hover { border-color: var(--text-dim); }
+
+    /* ---- APP ---- */
+    #app-screen { display: none; }
+
+    .user-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      padding: 8px 16px 8px 8px;
+      margin-bottom: 32px;
+    }
+
+    .avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--green);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; color: #000;
+      flex-shrink: 0;
+    }
+
+    .user-name { font-size: 14px; font-weight: 500; flex: 1; }
+
+    .connected-badge {
+      font-size: 11px;
+      color: var(--green);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: 20px;
+      padding: 56px 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s;
+      position: relative;
+    }
+
+    .upload-zone:hover, .upload-zone.over {
+      border-color: var(--green);
+      background: var(--green-dim);
+    }
+
+    .upload-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .upload-icon { font-size: 44px; margin-bottom: 14px; }
+
+    .upload-zone h3 {
+      font-family: 'Anton', sans-serif;
+      font-size: 22px;
+      margin-bottom: 6px;
+    }
+
+    .upload-zone p { color: var(--text-dim); font-size: 13px; }
+
+    /* Preview */
+    .preview-wrap { margin-top: 20px; display: none; }
+
+    .preview-wrap img {
+      width: 100%;
+      max-height: 280px;
+      object-fit: contain;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+
+    /* Progress */
+    .progress-wrap { margin-top: 16px; display: none; }
+
+    .progress-track {
+      background: var(--border);
+      border-radius: 50px;
+      height: 3px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--green);
+      border-radius: 50px;
+      width: 0%;
+      transition: width 0.3s;
+    }
+
+    .progress-label {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-top: 8px;
+      text-align: center;
+    }
+
+    /* Results */
+    .results { display: none; margin-top: 32px; }
+
+    .divider { height: 1px; background: var(--border); margin: 28px 0; }
+
+    .section-title {
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+
+    .ocr-text {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      color: var(--text-dim);
+      white-space: pre-wrap;
+      max-height: 110px;
+      overflow-y: auto;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .fields-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .playlist-row { margin-bottom: 16px; }
+
+    /* Track results */
+    .track-list { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+
+    .track-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 14px;
+      transition: all 0.2s;
+    }
+
+    .track-item:hover { border-color: var(--green); background: var(--green-dim); }
+
+    .track-art {
+      width: 46px; height: 46px;
+      border-radius: 6px;
+      object-fit: cover;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+
+    .track-info { flex: 1; min-width: 0; }
+
+    .track-name {
+      font-weight: 500;
+      font-size: 14px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .track-sub {
+      font-size: 12px;
+      color: var(--text-dim);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
+    }
+
+    .add-btn {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      background: var(--green);
+      border: none;
+      color: #000;
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.2s;
+    }
+
+    .add-btn:hover { transform: scale(1.1); background: #1ed760; }
+    .add-btn.done { background: var(--border); color: var(--green); font-size: 16px; cursor: default; }
+
+    .scan-again { text-align: center; margin-top: 28px; }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 28px; left: 50%;
+      transform: translateX(-50%) translateY(120px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      padding: 13px 24px;
+      font-size: 14px; font-weight: 500;
+      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      z-index: 999;
+      white-space: nowrap;
+    }
+
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.success { border-color: var(--green); color: var(--green); }
+    .toast.error { border-color: var(--red); color: var(--red); }
+
+    .empty-msg {
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 14px;
+      padding: 20px 0;
+    }
+
+    @media (max-width: 480px) {
+      .fields-row { grid-template-columns: 1fr; }
+      .logo { font-size: 40px; }
+      .card { padding: 28px 24px; }
+      .upload-zone { padding: 40px 24px; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="logo">SCAN<span>R</span></div>
+    <div class="tagline">Music Discovery</div>
+  </header>
+
+  <!-- SETUP SCREEN -->
+  <div id="setup-screen">
+    <div class="card">
+      <h2>Connect Spotify</h2>
+      <p>Enter your Spotify App Client ID once to get started. You can find it in your Spotify Developer Dashboard under your app settings.</p>
+      <div class="form-group">
+        <label>Spotify Client ID</label>
+        <input type="text" id="client-id-input" placeholder="Paste your Client ID here..." autocomplete="off" />
+      </div>
+      <button class="btn btn-green" onclick="connectSpotify()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+        Connect to Spotify
+      </button>
+    </div>
+  </div>
+
+  <!-- APP SCREEN -->
+  <div id="app-screen">
+    <div class="user-bar">
+      <div class="avatar" id="user-avatar">?</div>
+      <div class="user-name" id="user-name">Loading...</div>
+      <div class="connected-badge">● Spotify</div>
+    </div>
+
+    <div class="upload-zone" id="upload-zone">
+      <input type="file" id="file-input" accept="image/*" onchange="handleFile(this.files[0])" />
+      <div class="upload-icon">📸</div>
+      <h3>Drop your screenshot here</h3>
+      <p>Tap to upload from your Pixel · PNG or JPG</p>
+    </div>
+
+    <div class="preview-wrap" id="preview-wrap">
+      <img id="preview-img" src="" alt="Preview" />
+    </div>
+
+    <div class="progress-wrap" id="progress-wrap">
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <div class="progress-label" id="progress-label">Scanning...</div>
+    </div>
+
+    <div class="results" id="results">
+      <div class="divider"></div>
+
+      <div class="section-title">Extracted Text</div>
+      <div class="ocr-text" id="ocr-text"></div>
+
+      <div class="section-title">Confirm Artist & Song</div>
+      <div class="fields-row">
+        <div class="form-group">
+          <label>Artist / Band</label>
+          <input type="text" id="artist-input" placeholder="Artist name..." />
+        </div>
+        <div class="form-group">
+          <label>Song Title</label>
+          <input type="text" id="song-input" placeholder="Song title..." />
+        </div>
+      </div>
+
+      <div class="playlist-row">
+        <div class="section-title">Add to Playlist</div>
+        <select id="playlist-select">
+          <option value="">Loading playlists...</option>
+        </select>
+      </div>
+
+      <button class="btn btn-green" onclick="searchSpotify()" id="search-btn">
+        🔍 &nbsp;Search Spotify
+      </button>
+
+      <div class="track-list" id="track-list"></div>
+
+      <div class="scan-again" id="scan-again" style="display:none">
+        <button class="btn btn-outline" style="width:auto; padding: 12px 32px;" onclick="resetApp()">
+          ↩ &nbsp;Scan Another
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+<script>
+  const SCOPES = 'playlist-modify-public playlist-modify-private playlist-read-private user-read-private user-read-email';
+  let accessToken = null;
+
+  // ── INIT ──────────────────────────────────────────────────────────────────
+  async function init() {
+    accessToken = localStorage.getItem('spotify_token');
+    const expiry  = localStorage.getItem('spotify_token_expiry');
+
+    if (accessToken && expiry && Date.now() < parseInt(expiry)) {
+      showApp();
+      await loadUser();
+    } else {
+      localStorage.removeItem('spotify_token');
+      localStorage.removeItem('spotify_token_expiry');
+      showSetup();
+    }
+  }
+
+  function showSetup() {
+    document.getElementById('setup-screen').style.display = 'block';
+    document.getElementById('app-screen').style.display   = 'none';
+    const saved = localStorage.getItem('spotify_client_id');
+    if (saved) document.getElementById('client-id-input').value = saved;
+  }
+
+  function showApp() {
+    document.getElementById('setup-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display   = 'block';
+  }
+
+  // ── AUTH (PKCE) ────────────────────────────────────────────────────────────
+  async function connectSpotify() {
+    const clientId = document.getElementById('client-id-input').value.trim();
+    if (!clientId) { toast('Please enter your Client ID', 'error'); return; }
+    localStorage.setItem('spotify_client_id', clientId);
+
+    const verifier  = randomString(128);
+    const challenge = await sha256base64url(verifier);
+    localStorage.setItem('pkce_verifier', verifier);
+
+    const params = new URLSearchParams({
+      client_id:             clientId,
+      response_type:         'code',
+      redirect_uri:          window.location.origin + '/callback',
+      scope:                 SCOPES,
+      code_challenge_method: 'S256',
+      code_challenge:        challenge,
+    });
+    window.location.href = 'https://accounts.spotify.com/authorize?' + params;
+  }
+
+  function randomString(len) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+    const buf = new Uint8Array(len);
+    crypto.getRandomValues(buf);
+    return Array.from(buf, b => chars[b % chars.length]).join('');
+  }
+
+  async function sha256base64url(str) {
+    const data   = new TextEncoder().encode(str);
+    const digest = await crypto.subtle.digest('SHA-256', data);
+    return btoa(String.fromCharCode(...new Uint8Array(digest)))
+      .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  }
+
+  // ── USER / PLAYLISTS ───────────────────────────────────────────────────────
+  async function loadUser() {
+    try {
+      const me = await spotifyGet('/me');
+      document.getElementById('user-name').textContent   = me.display_name || me.id;
+      document.getElementById('user-avatar').textContent = (me.display_name || me.id)[0].toUpperCase();
+
+      const pl = await spotifyGet('/me/playlists?limit=50');
+      const sel = document.getElementById('playlist-select');
+      sel.innerHTML = '<option value="new">+ Create "Music Scanner Discoveries"</option>';
+      pl.items.forEach(p => {
+        sel.innerHTML += `<option value="${p.id}">${p.name}</option>`;
+      });
+    } catch(e) {
+      console.error(e);
+      showSetup();
+    }
+  }
+
+  // ── FILE / OCR ─────────────────────────────────────────────────────────────
+  function handleFile(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      document.getElementById('preview-img').src = e.target.result;
+      document.getElementById('preview-wrap').style.display = 'block';
+      runOCR(file);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  const zone = document.getElementById('upload-zone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('over');
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+
+  async function runOCR(file) {
+    const pw = document.getElementById('progress-wrap');
+    const pf = document.getElementById('progress-fill');
+    const pl = document.getElementById('progress-label');
+    pw.style.display = 'block';
+    document.getElementById('results').style.display = 'none';
+
+    try {
+      const worker = await Tesseract.createWorker('eng', 1, {
+        logger: m => {
+          if (m.status === 'recognizing text') {
+            const p = Math.round(m.progress * 100);
+            pf.style.width = p + '%';
+            pl.textContent = `Scanning image... ${p}%`;
+          }
+        }
+      });
+      const { data: { text } } = await worker.recognize(file);
+      await worker.terminate();
+
+      pw.style.display = 'none';
+      showResults(text);
+    } catch(err) {
+      pw.style.display = 'none';
+      toast('Scan failed — try a clearer image', 'error');
+    }
+  }
+
+  function showResults(text) {
+    document.getElementById('ocr-text').textContent = text;
+    document.getElementById('results').style.display = 'block';
+
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 1);
+    let artist = '', song = '';
+
+    // Try "Artist - Song" or "Song by Artist" patterns first
+    for (const line of lines) {
+      if (line.includes(' - ') && !artist) {
+        const parts = line.split(' - ');
+        artist = parts[0].trim();
+        song   = parts.slice(1).join(' - ').trim();
+        break;
+      }
+      const byIdx = line.toLowerCase().indexOf(' by ');
+      if (byIdx > -1 && !artist) {
+        song   = line.substring(0, byIdx).trim();
+        artist = line.substring(byIdx + 4).trim();
+        break;
+      }
+    }
+
+    // Fallback: first two lines
+    if (!artist && lines[0]) artist = lines[0];
+    if (!song   && lines[1]) song   = lines[1];
+
+    document.getElementById('artist-input').value = artist;
+    document.getElementById('song-input').value   = song;
+
+    document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // ── SEARCH ─────────────────────────────────────────────────────────────────
+  async function searchSpotify() {
+    const artist = document.getElementById('artist-input').value.trim();
+    const song   = document.getElementById('song-input').value.trim();
+    if (!artist && !song) { toast('Enter an artist or song first', 'error'); return; }
+
+    const btn = document.getElementById('search-btn');
+    btn.textContent = 'Searching...';
+    btn.disabled    = true;
+
+    try {
+      let q = [];
+      if (song)   q.push('track:'  + song);
+      if (artist) q.push('artist:' + artist);
+      const data  = await spotifyGet(`/search?q=${encodeURIComponent(q.join(' '))}&type=track&limit=5`);
+      renderTracks(data.tracks?.items || []);
+    } finally {
+      btn.innerHTML = '🔍 &nbsp;Search Spotify';
+      btn.disabled  = false;
+    }
+  }
+
+  function renderTracks(tracks) {
+    const list = document.getElementById('track-list');
+    document.getElementById('scan-again').style.display = 'block';
+
+    if (!tracks.length) {
+      list.innerHTML = '<p class="empty-msg">No results — try editing the fields above</p>';
+      return;
+    }
+
+    list.innerHTML = tracks.map(t => `
+      <div class="track-item">
+        <img class="track-art" src="${t.album.images[2]?.url || ''}" alt="" />
+        <div class="track-info">
+          <div class="track-name">${t.name}</div>
+          <div class="track-sub">${t.artists.map(a=>a.name).join(', ')} · ${t.album.name}</div>
+        </div>
+        <button class="add-btn" onclick="addTrack('${t.uri}', this)" title="Add to playlist">+</button>
+      </div>
+    `).join('');
+  }
+
+  // ── ADD TO PLAYLIST ────────────────────────────────────────────────────────
+  async function addTrack(uri, btn) {
+    btn.disabled    = true;
+    btn.textContent = '…';
+
+    try {
+      let playlistId = document.getElementById('playlist-select').value;
+
+      if (playlistId === 'new' || !playlistId) {
+        const me = await spotifyGet('/me');
+        const pl = await spotifyPost(`/users/${me.id}/playlists`, {
+          name:        'Music Scanner Discoveries',
+          description: 'Tracks found with SCANR',
+          public:      false
+        });
+        playlistId = pl.id;
+
+        const sel = document.getElementById('playlist-select');
+        const opt = new Option('Music Scanner Discoveries', playlistId, true, true);
+        sel.appendChild(opt);
+      }
+
+      await spotifyPost(`/playlists/${playlistId}/tracks`, { uris: [uri] });
+      btn.textContent = '✓';
+      btn.classList.add('done');
+      toast('✓ Added to playlist!', 'success');
+    } catch(e) {
+      btn.disabled    = false;
+      btn.textContent = '+';
+      toast('Failed to add track', 'error');
+    }
+  }
+
+  // ── SPOTIFY HELPERS ────────────────────────────────────────────────────────
+  async function spotifyGet(path) {
+    const r = await fetch('https://api.spotify.com/v1' + path, {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    if (!r.ok) throw new Error('Spotify error ' + r.status);
+    return r.json();
+  }
+
+  async function spotifyPost(path, body) {
+    const r = await fetch('https://api.spotify.com/v1' + path, {
+      method:  'POST',
+      headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+      body:    JSON.stringify(body)
+    });
+    if (!r.ok) throw new Error('Spotify error ' + r.status);
+    return r.json();
+  }
+
+  // ── UTILS ──────────────────────────────────────────────────────────────────
+  function toast(msg, type = '') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className   = 'toast ' + type;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 3000);
+  }
+
+  function resetApp() {
+    document.getElementById('file-input').value = '';
+    document.getElementById('preview-wrap').style.display  = 'none';
+    document.getElementById('results').style.display       = 'none';
+    document.getElementById('track-list').innerHTML        = '';
+    document.getElementById('scan-again').style.display    = 'none';
+    document.getElementById('ocr-text').textContent        = '';
+    document.getElementById('artist-input').value          = '';
+    document.getElementById('song-input').value            = '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  init();
+</script>
+</body>
+</html>
