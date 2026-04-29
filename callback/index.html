@@ -4,124 +4,134 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SCANR — Connecting…</title>
-  <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    :root { --green: #1DB954; --bg: #0a0a0a; --text: #f0f0f0; --text-dim: #777; --red: #e84040; }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'DM Sans', sans-serif;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .wrap { text-align: center; padding: 40px; }
-    .logo {
-      font-family: 'Anton', sans-serif;
-      font-size: 40px;
-      letter-spacing: -1px;
-      margin-bottom: 32px;
-    }
-    .logo span { color: var(--green); }
-    .spinner {
-      width: 44px; height: 44px;
-      border: 3px solid #242424;
-      border-top-color: var(--green);
-      border-radius: 50%;
-      animation: spin 0.75s linear infinite;
-      margin: 0 auto 20px;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .status { color: var(--text-dim); font-size: 14px; }
-    .error-msg { color: var(--red); font-size: 14px; margin-top: 16px; }
-    .retry-btn {
-      display: inline-block;
-      margin-top: 24px;
-      padding: 12px 28px;
-      background: var(--green);
-      color: #000;
-      border-radius: 50px;
-      font-weight: 500;
-      font-size: 14px;
-      text-decoration: none;
-      cursor: pointer;
-      border: none;
-      font-family: 'DM Sans', sans-serif;
-    }
+    body { background:#0a0a0a; color:#f0f0f0; font-family:sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; }
+    .wrap { text-align:center; padding:40px; max-width:600px; width:100%; }
+    .logo { font-size:40px; font-weight:900; margin-bottom:24px; }
+    .logo span { color:#1DB954; }
+    .spinner { width:40px; height:40px; border:3px solid #333; border-top-color:#1DB954; border-radius:50%; animation:spin 0.75s linear infinite; margin:0 auto 16px; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    #status { color:#777; font-size:14px; margin-bottom:16px; }
+    #debug { background:#141414; border:1px solid #333; border-radius:8px; padding:14px; margin-top:16px; font-size:11px; font-family:monospace; text-align:left; color:#aaa; white-space:pre-wrap; word-break:break-all; display:none; max-height:300px; overflow-y:auto; }
+    #error-msg { color:#e84040; font-size:13px; margin-top:12px; white-space:pre-wrap; display:none; }
+    .btn { display:inline-block; margin-top:20px; padding:12px 28px; background:#1DB954; color:#000; border-radius:50px; font-weight:500; font-size:14px; text-decoration:none; display:none; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="logo">SCAN<span>R</span></div>
     <div class="spinner" id="spinner"></div>
-    <p class="status" id="status">Connecting to Spotify…</p>
-    <p class="error-msg" id="error-msg" style="display:none"></p>
-    <a href="/" class="retry-btn" id="retry-btn" style="display:none">← Try Again</a>
+    <div id="status">Connecting to Spotify…</div>
+    <div id="debug"></div>
+    <div id="error-msg"></div>
+    <a href="/" class="btn" id="retry-btn">← Try Again</a>
   </div>
+<script>
+function log(msg) {
+  var d = document.getElementById('debug');
+  d.style.display = 'block';
+  d.textContent += msg + '\n';
+  console.log('[CALLBACK]', msg);
+}
 
-  <script>
-    async function handleCallback() {
-      const params   = new URLSearchParams(window.location.search);
-      const code     = params.get('code');
-      const error    = params.get('error');
+async function run() {
+  var params  = new URLSearchParams(window.location.search);
+  var code    = params.get('code');
+  var errParam = params.get('error');
 
-      if (error || !code) {
-        showError('Spotify auth was denied or failed. ' + (error || ''));
-        return;
-      }
+  log('=== SPOTIFY CALLBACK ===');
+  log('Code present: ' + !!code);
+  log('Error param: ' + (errParam || 'none'));
 
-      const clientId = localStorage.getItem('spotify_client_id');
-      const verifier = localStorage.getItem('pkce_verifier');
+  if (errParam || !code) {
+    showError('Auth denied: ' + (errParam || 'no code returned'));
+    return;
+  }
 
-      if (!clientId || !verifier) {
-        showError('Missing credentials. Please try again from the start.');
-        return;
-      }
+  var clientId = localStorage.getItem('spotify_client_id');
+  var verifier = localStorage.getItem('pkce_verifier');
 
-      document.getElementById('status').textContent = 'Exchanging token…';
+  log('Client ID present: ' + !!clientId);
+  log('Verifier present: ' + !!verifier);
 
-      try {
-        const body = new URLSearchParams({
-          client_id:     clientId,
-          grant_type:    'authorization_code',
-          code:          code,
-          redirect_uri:  window.location.origin + '/callback',
-          code_verifier: verifier,
-        });
+  if (!clientId || !verifier) {
+    showError('Missing stored credentials.\nPlease go back and reconnect.');
+    return;
+  }
 
-        const res  = await fetch('https://accounts.spotify.com/api/token', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body:    body.toString(),
-        });
+  document.getElementById('status').textContent = 'Exchanging code for token…';
 
-        const data = await res.json();
+  try {
+    var body = new URLSearchParams({
+      client_id:     clientId,
+      grant_type:    'authorization_code',
+      code:          code,
+      redirect_uri:  window.location.origin + '/callback',
+      code_verifier: verifier
+    });
 
-        if (data.access_token) {
-          localStorage.setItem('spotify_token', data.access_token);
-          localStorage.setItem('spotify_token_expiry', Date.now() + (data.expires_in * 1000));
-          localStorage.removeItem('pkce_verifier');
-          document.getElementById('status').textContent = 'Connected! Redirecting…';
-          window.location.href = '/';
-        } else {
-          showError('Could not get access token: ' + (data.error_description || data.error || 'Unknown error'));
-        }
-      } catch(err) {
-        showError('Network error: ' + err.message);
-      }
+    log('POSTing to Spotify token endpoint...');
+
+    var res  = await fetch('https://accounts.spotify.com/api/token', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body:    body.toString()
+    });
+
+    var data = await res.json();
+
+    log('HTTP status: ' + res.status);
+    log('access_token: ' + (data.access_token ? data.access_token.substring(0,20)+'...' : 'MISSING'));
+    log('token_type: '   + (data.token_type   || 'none'));
+    log('expires_in: '   + (data.expires_in   || 'none'));
+    log('scope: '        + (data.scope        || '*** EMPTY - NO SCOPES GRANTED ***'));
+    log('error: '        + (data.error        || 'none'));
+    log('error_description: ' + (data.error_description || 'none'));
+
+    if (!data.access_token) {
+      showError('No token received.\nError: ' + (data.error_description || data.error || 'Unknown'));
+      return;
     }
 
-    function showError(msg) {
-      document.getElementById('spinner').style.display   = 'none';
-      document.getElementById('status').style.display    = 'none';
-      document.getElementById('error-msg').textContent   = msg;
-      document.getElementById('error-msg').style.display = 'block';
-      document.getElementById('retry-btn').style.display = 'inline-block';
+    var grantedScopes = data.scope || '';
+    log('Has playlist-modify-public: '  + grantedScopes.includes('playlist-modify-public'));
+    log('Has playlist-modify-private: ' + grantedScopes.includes('playlist-modify-private'));
+
+    localStorage.setItem('spotify_token',          data.access_token);
+    localStorage.setItem('spotify_token_expiry',   String(Date.now() + (data.expires_in * 1000)));
+    localStorage.setItem('spotify_granted_scopes', grantedScopes);
+    localStorage.removeItem('pkce_verifier');
+
+    if (!grantedScopes.includes('playlist-modify-public') && !grantedScopes.includes('playlist-modify-private')) {
+      log('*** SCOPE PROBLEM CONFIRMED ***');
+      showError(
+        'Spotify connected but did NOT grant playlist permissions.\n\n' +
+        'Scopes received: "' + (grantedScopes || 'NONE') + '"\n\n' +
+        'Fix: Go to spotify.com/account/apps → remove "Pic to Playlist" → come back and reconnect.'
+      );
+      return;
     }
 
-    handleCallback();
-  </script>
+    log('All scopes OK - redirecting to app...');
+    document.getElementById('status').textContent = 'Connected! Redirecting…';
+    document.getElementById('spinner').style.display = 'none';
+    setTimeout(function() { window.location.href = '/'; }, 800);
+
+  } catch(err) {
+    log('Exception: ' + err.message);
+    showError('Network error: ' + err.message);
+  }
+}
+
+function showError(msg) {
+  document.getElementById('spinner').style.display   = 'none';
+  document.getElementById('status').style.display    = 'none';
+  document.getElementById('error-msg').textContent   = msg;
+  document.getElementById('error-msg').style.display = 'block';
+  document.getElementById('retry-btn').style.display = 'inline-block';
+}
+
+run();
+</script>
 </body>
 </html>
