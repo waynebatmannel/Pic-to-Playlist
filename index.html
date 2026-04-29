@@ -282,7 +282,12 @@ async function genChallenge(v) {
 
 async function loadUser() {
   try {
-    var me = await sGet('/me');
+    // Check actual granted scopes
+    var resp = await fetch('https://api.spotify.com/v1/me', {headers:{'Authorization':'Bearer '+spotifyToken}});
+    var scopes = resp.headers.get('X-OAuth-Scopes') || 'not returned';
+    console.log('TOKEN SCOPES:', scopes);
+    console.log('TOKEN VALUE:', spotifyToken ? spotifyToken.substring(0,20)+'...' : 'NULL');
+    var me = await resp.json();
     document.getElementById('user-avatar').textContent = (me.display_name || me.id || '?')[0].toUpperCase();
     document.getElementById('user-name').textContent   = me.display_name || me.id;
     var pl = await sGet('/me/playlists?limit=50');
@@ -416,17 +421,31 @@ function renderTracks(tracks) {
 async function addTrack(uri, btn) {
   btn.disabled=true; btn.textContent='...';
   try {
+    // Check token exists
+    if (!spotifyToken) throw new Error('No Spotify token — please Reconnect');
+
     var pid = document.getElementById('playlist-select').value;
+    console.log('Adding to playlist:', pid, 'URI:', uri);
+
     if (pid==='new'||!pid) {
       var np = await sPost('/me/playlists',{name:'Music Scanner Discoveries',description:'Found with SCANR',public:false});
+      console.log('Created playlist:', np);
       pid=np.id;
       var sel=document.getElementById('playlist-select');
       var o=document.createElement('option'); o.value=pid; o.textContent='Music Scanner Discoveries'; o.selected=true; sel.appendChild(o);
     }
-    await sPost('/playlists/'+pid+'/tracks',{uris:[uri]});
-    btn.textContent='&#10003;'; btn.classList.add('done');
+
+    console.log('Posting track to playlist', pid);
+    var result = await sPost('/playlists/'+pid+'/tracks',{uris:[uri]});
+    console.log('Add result:', result);
+
+    btn.innerHTML='&#10003;'; btn.classList.add('done');
     showToast('&#10003; Added to playlist!','success');
-  } catch(e) { btn.disabled=false; btn.textContent='+'; showToast('Failed: '+e.message,'error'); }
+  } catch(e) {
+    console.error('addTrack error:', e);
+    btn.disabled=false; btn.textContent='+';
+    showToast('Failed: '+e.message,'error');
+  }
 }
 
 async function sGet(path) {
@@ -469,20 +488,4 @@ function reconnect() {
 function showToast(msg,type) {
   var el=document.getElementById('toast');
   el.textContent=msg; el.className='toast'+(type?' '+type:''); el.classList.add('show');
-  setTimeout(function(){el.classList.remove('show');},3500);
-}
-function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function resetApp() {
-  document.getElementById('file-input').value='';
-  document.getElementById('preview-wrap').style.display='none';
-  document.getElementById('results').style.display='none';
-  document.getElementById('track-list').innerHTML='';
-  document.getElementById('scan-again').style.display='none';
-  document.getElementById('ocr-text').textContent='';
-  document.getElementById('artist-input').value='';
-  document.getElementById('song-input').value='';
-  window.scrollTo({top:0,behavior:'smooth'});
-}
-</script>
-</body>
-</html>
+  setTimeou
