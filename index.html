@@ -488,4 +488,20 @@ function reconnect() {
 function showToast(msg,type) {
   var el=document.getElementById('toast');
   el.textContent=msg; el.className='toast'+(type?' '+type:''); el.classList.add('show');
-  setTimeou
+  setTimeout(function(){el.classList.remove('show');},3500);
+}
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function resetApp() {
+  document.getElementById('file-input').value='';
+  document.getElementById('preview-wrap').style.display='none';
+  document.getElementById('results').style.display='none';
+  document.getElementById('track-list').innerHTML='';
+  document.getElementById('scan-again').style.display='none';
+  document.getElementById('ocr-text').textContent='';
+  document.getElementById('artist-input').value='';
+  document.getElementById('song-input').value='';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+</script>
+</body>
+</html>
