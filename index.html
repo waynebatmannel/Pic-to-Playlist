@@ -581,31 +581,62 @@
     if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
   });
 
+  // Resize image to max 1500px wide before OCR — fixes Pixel high-res issue
+  function resizeImageForOCR(file) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const MAX = 1500;
+        let w = img.width, h = img.height;
+        if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        // Increase contrast slightly to help OCR
+        ctx.filter = 'contrast(1.2)';
+        ctx.drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        canvas.toBlob(resolve, 'image/png');
+      };
+      img.src = url;
+    });
+  }
+
   async function runOCR(file) {
     const pw = document.getElementById('progress-wrap');
     const pf = document.getElementById('progress-fill');
     const pl = document.getElementById('progress-label');
     pw.style.display = 'block';
     document.getElementById('results').style.display = 'none';
+    pl.textContent = 'Preparing image...';
 
     try {
-      const worker = await Tesseract.createWorker('eng', 1, {
-        logger: m => {
-          if (m.status === 'recognizing text') {
-            const p = Math.round(m.progress * 100);
-            pf.style.width = p + '%';
-            pl.textContent = `Scanning image... ${p}%`;
-          }
-        }
+      // Resize first
+      const resized = await resizeImageForOCR(file);
+      pl.textContent = 'Loading OCR engine...';
+
+      const worker = await Tesseract.createWorker('eng');
+      await worker.setParameters({
+        tessedit_pageseg_mode: '3', // fully automatic page segmentation
       });
-      const { data: { text } } = await worker.recognize(file);
+
+      pl.textContent = 'Scanning image...';
+      pf.style.width = '30%';
+
+      const { data: { text } } = await worker.recognize(resized);
+      pf.style.width = '100%';
       await worker.terminate();
 
       pw.style.display = 'none';
       showResults(text);
     } catch(err) {
+      console.error('OCR error:', err);
       pw.style.display = 'none';
-      toast('Scan failed — try a clearer image', 'error');
+      toast('Scan failed — please try again', 'error');
+      // Show manual entry as fallback
+      document.getElementById('results').style.display = 'block';
+      document.getElementById('ocr-text').textContent = 'Could not extract text automatically.\nPlease type the artist and song manually below.';
     }
   }
 
