@@ -432,12 +432,18 @@ async function addTrack(uri, btn) {
 
 async function sGet(path) {
   var r = await fetch('https://api.spotify.com/v1'+path,{headers:{'Authorization':'Bearer '+spotifyToken}});
-  if (!r.ok) throw new Error('Spotify '+r.status);
+  if (!r.ok) {
+    var e = await r.json().catch(function(){return {};});
+    throw new Error('Spotify '+r.status+': '+((e.error&&e.error.message)||'unknown'));
+  }
   return r.json();
 }
 async function sPost(path,body) {
   var r = await fetch('https://api.spotify.com/v1'+path,{method:'POST',headers:{'Authorization':'Bearer '+spotifyToken,'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if (!r.ok) throw new Error('Spotify '+r.status);
+  if (!r.ok) {
+    var e = await r.json().catch(function(){return {};});
+    throw new Error('Spotify '+r.status+': '+((e.error&&e.error.message)||'unknown'));
+  }
   return r.json();
 }
 
@@ -446,20 +452,17 @@ function reconnect() {
   localStorage.removeItem('spotify_token_expiry');
   localStorage.removeItem('pkce_verifier');
   spotifyToken = null;
-  // Go straight to Spotify auth using saved credentials
   var clientId = localStorage.getItem('spotify_client_id');
   if (!clientId) { showSetup(); return; }
-  genChallenge(genVerifier(128)).then(function(challenge) {
-    var verifier = genVerifier(128);
-    genChallenge(verifier).then(function(ch) {
-      localStorage.setItem('pkce_verifier', verifier);
-      var p = new URLSearchParams({
-        client_id: clientId, response_type: 'code',
-        redirect_uri: window.location.origin + '/callback',
-        scope: SCOPES, code_challenge_method: 'S256', code_challenge: ch
-      });
-      window.location.href = 'https://accounts.spotify.com/authorize?' + p.toString();
+  var verifier = genVerifier(128);
+  genChallenge(verifier).then(function(ch) {
+    localStorage.setItem('pkce_verifier', verifier);
+    var p = new URLSearchParams({
+      client_id: clientId, response_type: 'code',
+      redirect_uri: window.location.origin + '/callback',
+      scope: SCOPES, code_challenge_method: 'S256', code_challenge: ch
     });
+    window.location.href = 'https://accounts.spotify.com/authorize?' + p.toString();
   });
 }
 
