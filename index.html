@@ -154,6 +154,7 @@
       <div class="avatar" id="user-avatar">?</div>
       <div class="user-name" id="user-name">Loading...</div>
       <div class="conn-badge">&#9679; Spotify</div>
+      <button onclick="reconnect()" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;padding:4px 8px;border-radius:20px;transition:color 0.2s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">Reconnect</button>
     </div>
 
     <div class="upload-zone" id="upload-zone">
@@ -440,7 +441,27 @@ async function sPost(path,body) {
   return r.json();
 }
 
-function showToast(msg,type) {
+function reconnect() {
+  localStorage.removeItem('spotify_token');
+  localStorage.removeItem('spotify_token_expiry');
+  localStorage.removeItem('pkce_verifier');
+  spotifyToken = null;
+  // Go straight to Spotify auth using saved credentials
+  var clientId = localStorage.getItem('spotify_client_id');
+  if (!clientId) { showSetup(); return; }
+  genChallenge(genVerifier(128)).then(function(challenge) {
+    var verifier = genVerifier(128);
+    genChallenge(verifier).then(function(ch) {
+      localStorage.setItem('pkce_verifier', verifier);
+      var p = new URLSearchParams({
+        client_id: clientId, response_type: 'code',
+        redirect_uri: window.location.origin + '/callback',
+        scope: SCOPES, code_challenge_method: 'S256', code_challenge: ch
+      });
+      window.location.href = 'https://accounts.spotify.com/authorize?' + p.toString();
+    });
+  });
+}
   var el=document.getElementById('toast');
   el.textContent=msg; el.className='toast'+(type?' '+type:''); el.classList.add('show');
   setTimeout(function(){el.classList.remove('show');},3500);
