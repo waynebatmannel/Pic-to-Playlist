@@ -189,8 +189,7 @@
         </div>
       </div>
       <div class="playlist-row">
-        <div class="section-title">Add to Playlist</div>
-        <select id="playlist-select"><option value="">Loading playlists...</option></select>
+        <div class="section-title">Save to Spotify</div>
       </div>
       <button class="btn btn-green" onclick="searchSpotify()" id="search-btn">&#128269; &nbsp;Search Spotify</button>
       <div class="track-list" id="track-list"></div>
@@ -205,7 +204,7 @@
 
 <script>
 var spotifyToken = null;
-var SCOPES = 'playlist-modify-public playlist-modify-private playlist-read-private user-read-private user-read-email';
+var SCOPES = 'user-library-modify user-read-private user-read-email user-library-read';
 
 window.addEventListener('DOMContentLoaded', function() {
   spotifyToken = localStorage.getItem('spotify_token');
@@ -282,21 +281,10 @@ async function genChallenge(v) {
 
 async function loadUser() {
   try {
-    // Check actual granted scopes
     var resp = await fetch('https://api.spotify.com/v1/me', {headers:{'Authorization':'Bearer '+spotifyToken}});
-    var scopes = resp.headers.get('X-OAuth-Scopes') || 'not returned';
-    console.log('TOKEN SCOPES:', scopes);
-    console.log('TOKEN VALUE:', spotifyToken ? spotifyToken.substring(0,20)+'...' : 'NULL');
     var me = await resp.json();
     document.getElementById('user-avatar').textContent = (me.display_name || me.id || '?')[0].toUpperCase();
     document.getElementById('user-name').textContent   = me.display_name || me.id;
-    var pl = await sGet('/me/playlists?limit=50');
-    var sel = document.getElementById('playlist-select');
-    sel.innerHTML = '<option value="new">+ Create "Music Scanner Discoveries"</option>';
-    pl.items.forEach(function(p) {
-      var o = document.createElement('option');
-      o.value = p.id; o.textContent = p.name; sel.appendChild(o);
-    });
   } catch(e) { console.error(e); showSetup(); }
 }
 
@@ -413,36 +401,26 @@ function renderTracks(tracks) {
         '<div class="track-name">'+esc(t.name)+'</div>'+
         '<div class="track-sub">'+art+' &middot; '+esc(t.album.name)+'</div>'+
       '</div>'+
-      '<button class="add-btn" onclick="addTrack(\''+t.uri+'\',this)">+</button>'+
+      '<button class="add-btn" onclick="addTrack(\''+t.id+'\',this)">+</button>'+
     '</div>';
   }).join('');
 }
 
-async function addTrack(uri, btn) {
+async function addTrack(trackId, btn) {
   btn.disabled=true; btn.textContent='...';
   try {
-    // Check token exists
-    if (!spotifyToken) throw new Error('No Spotify token — please Reconnect');
-
-    var pid = document.getElementById('playlist-select').value;
-    console.log('Adding to playlist:', pid, 'URI:', uri);
-
-    if (pid==='new'||!pid) {
-      var np = await sPost('/me/playlists',{name:'Music Scanner Discoveries',description:'Found with SCANR',public:true});
-      console.log('Created playlist:', np);
-      pid=np.id;
-      var sel=document.getElementById('playlist-select');
-      var o=document.createElement('option'); o.value=pid; o.textContent='Music Scanner Discoveries'; o.selected=true; sel.appendChild(o);
+    var r = await fetch('https://api.spotify.com/v1/me/tracks', {
+      method: 'PUT',
+      headers: {'Authorization':'Bearer '+spotifyToken, 'Content-Type':'application/json'},
+      body: JSON.stringify({ids:[trackId]})
+    });
+    if (!r.ok) {
+      var e = await r.json().catch(function(){return {};});
+      throw new Error('Spotify '+r.status+': '+((e.error&&e.error.message)||'unknown'));
     }
-
-    console.log('Posting track to playlist', pid);
-    var result = await sPost('/playlists/'+pid+'/tracks',{uris:[uri]});
-    console.log('Add result:', result);
-
     btn.innerHTML='&#10003;'; btn.classList.add('done');
-    showToast('&#10003; Added to playlist!','success');
+    showToast('&#10084; Saved to Liked Songs!','success');
   } catch(e) {
-    console.error('addTrack error:', e);
     btn.disabled=false; btn.textContent='+';
     showToast('Failed: '+e.message,'error');
   }
