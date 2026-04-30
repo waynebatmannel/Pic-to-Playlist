@@ -93,26 +93,12 @@ async function run() {
       return;
     }
 
-    var grantedScopes = data.scope || '';
-    log('Has playlist-modify-public: '  + grantedScopes.includes('playlist-modify-public'));
-    log('Has playlist-modify-private: ' + grantedScopes.includes('playlist-modify-private'));
-
     localStorage.setItem('spotify_token',          data.access_token);
     localStorage.setItem('spotify_token_expiry',   String(Date.now() + (data.expires_in * 1000)));
-    localStorage.setItem('spotify_granted_scopes', grantedScopes);
+    localStorage.setItem('spotify_granted_scopes', data.scope || '');
     localStorage.removeItem('pkce_verifier');
 
-    if (!grantedScopes.includes('playlist-modify-public') && !grantedScopes.includes('playlist-modify-private')) {
-      log('*** SCOPE PROBLEM CONFIRMED ***');
-      showError(
-        'Spotify connected but did NOT grant playlist permissions.\n\n' +
-        'Scopes received: "' + (grantedScopes || 'NONE') + '"\n\n' +
-        'Fix: Go to spotify.com/account/apps → remove "Pic to Playlist" → come back and reconnect.'
-      );
-      return;
-    }
-
-    log('All scopes OK - redirecting to app...');
+    log('Token saved! Redirecting...');
     document.getElementById('status').textContent = 'Connected! Redirecting…';
     document.getElementById('spinner').style.display = 'none';
     setTimeout(function() { window.location.href = '/'; }, 800);
