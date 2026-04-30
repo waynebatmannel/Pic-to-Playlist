@@ -178,7 +178,7 @@
       <div class="section-title">Extracted Text</div>
       <div class="ocr-text" id="ocr-text"></div>
       <div class="section-title">Confirm Artist &amp; Song</div>
-      <div class="fields-row">
+      <div class="fields-row" id="fields-row">
         <div class="form-group">
           <label>Artist / Band</label>
           <input type="text" id="artist-input" placeholder="Artist name..." />
@@ -332,7 +332,7 @@ async function runOCR(file) {
         max_tokens: 400,
         messages: [{ role:'user', content:[
           { type:'image_url', image_url:{ url:'data:'+mt+';base64,'+b64 } },
-          { type:'text', text:'This is a screenshot of a music review or social media post. Find the band/artist name and song title.\n\nReply ONLY with valid JSON:\n{"artist":"Artist Name","song":"Song Title","raw_text":"all text in the image"}\n\nLeave song empty string if not visible.' }
+          { type:'text', text:'This is a screenshot of a music review or social media post. Find ALL band/artist names and song titles visible in the image — there may be one or many.\n\nReply ONLY with valid JSON:\n{"tracks":[{"artist":"Artist Name","song":"Song Title"}],"raw_text":"all text in the image"}\n\nIf only one track is visible, still return an array with one item. If a song title is not visible for an artist, leave song as empty string.' }
         ]}]
       })
     });
@@ -352,7 +352,15 @@ async function runOCR(file) {
     try { parsed = JSON.parse(clean); } catch(e) { throw new Error('AI said: '+txt.substring(0,120)); }
 
     pf.style.width='100%'; pw.style.display='none';
-    showResults(parsed.raw_text||'', parsed.artist||'', parsed.song||'');
+
+    // Handle both single and multi-track responses
+    var tracks = [];
+    if (parsed.tracks && Array.isArray(parsed.tracks)) {
+      tracks = parsed.tracks;
+    } else if (parsed.artist) {
+      tracks = [{ artist: parsed.artist, song: parsed.song || '' }];
+    }
+    showResults(parsed.raw_text||'', tracks);
 
   } catch(err) {
     console.error(err);
@@ -364,46 +372,73 @@ async function runOCR(file) {
   }
 }
 
-function showResults(raw, artist, song) {
+function showResults(raw, tracks) {
   document.getElementById('ocr-text').textContent  = raw || '(no raw text extracted)';
-  document.getElementById('artist-input').value    = artist;
-  document.getElementById('song-input').value      = song;
   document.getElementById('results').style.display = 'block';
+
+  var list = document.getElementById('track-list');
+  document.getElementById('scan-again').style.display = 'block';
+  document.getElementById('search-btn').style.display = 'none';
+  document.getElementById('fields-row').style.display = 'none';
+
+  if (!tracks || !tracks.length) {
+    list.innerHTML = '<p class="empty-msg">No tracks found — try a clearer image</p>';
+    document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'});
+    return;
+  }
+
+  list.innerHTML = tracks.map(function(t, i) {
+    var artist = t.artist || '';
+    var song   = t.song   || '';
+    var label  = artist + (song ? ' — ' + song : '');
+    return '<div class="track-item" id="track-row-'+i+'">'+
+      '<div class="track-info">'+
+        '<div class="track-name">'+esc(artist)+'</div>'+
+        '<div class="track-sub">'+esc(song || 'Tap to search')+'</div>'+
+      '</div>'+
+      '<button class="add-btn" style="width:auto;border-radius:20px;padding:0 14px;font-size:13px;font-weight:500" '+
+        'onclick="searchAndOpen(\''+esc(artist)+'\',\''+esc(song)+'\',this)">'+
+        '&#128269; Find'+
+      '</button>'+
+    '</div>';
+  }).join('');
+
   document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
-async function searchSpotify() {
-  var artist = document.getElementById('artist-input').value.trim();
-  var song   = document.getElementById('song-input').value.trim();
-  if (!artist && !song) { showToast('Enter artist or song first','error'); return; }
-  var btn = document.getElementById('search-btn');
-  btn.textContent='Searching...'; btn.disabled=true;
+async function searchAndOpen(artist, song, btn) {
+  btn.textContent = '...'; btn.disabled = true;
   try {
     var q = [];
-    if (song)   q.push('track:'+song);
-    if (artist) q.push('artist:'+artist);
-    var d = await sGet('/search?q='+encodeURIComponent(q.join(' '))+'&type=track&limit=5');
-    renderTracks(d.tracks && d.tracks.items ? d.tracks.items : []);
-  } catch(e) { showToast('Search failed: '+e.message,'error'); }
-  finally { btn.innerHTML='&#128269; &nbsp;Search Spotify'; btn.disabled=false; }
-}
+    if (song)   q.push('track:'  + song);
+    if (artist) q.push('artist:' + artist);
+    var d = await sGet('/search?q='+encodeURIComponent(q.join(' '))+'&type=track&limit=3');
+    var items = d.tracks && d.tracks.items ? d.tracks.items : [];
 
-function renderTracks(tracks) {
-  var list = document.getElementById('track-list');
-  document.getElementById('scan-again').style.display='block';
-  if (!tracks.length) { list.innerHTML='<p class="empty-msg">No results — try editing the fields</p>'; return; }
-  list.innerHTML = tracks.map(function(t) {
-    var img = t.album.images && t.album.images[2] ? t.album.images[2].url : '';
-    var art = t.artists.map(function(a){return esc(a.name);}).join(', ');
-    return '<div class="track-item">'+
-      '<img class="track-art" src="'+img+'" alt="" />'+
-      '<div class="track-info">'+
-        '<div class="track-name">'+esc(t.name)+'</div>'+
-        '<div class="track-sub">'+art+' &middot; '+esc(t.album.name)+'</div>'+
-      '</div>'+
-      '<button class="add-btn" onclick="addTrack(\''+t.id+'\',this)" title="Open in Spotify">&#10084;</button>'+
-    '</div>';
-  }).join('');
+    if (!items.length) {
+      btn.textContent = 'Not found'; return;
+    }
+
+    // Replace the row with spotify results
+    var row = btn.closest('.track-item');
+    var results = items.map(function(t) {
+      var img = t.album.images && t.album.images[2] ? t.album.images[2].url : '';
+      var art = t.artists.map(function(a){return esc(a.name);}).join(', ');
+      return '<div class="track-item" style="margin-top:6px;border-color:#1DB954">'+
+        '<img class="track-art" src="'+img+'" alt="" />'+
+        '<div class="track-info">'+
+          '<div class="track-name">'+esc(t.name)+'</div>'+
+          '<div class="track-sub">'+art+'</div>'+
+        '</div>'+
+        '<button class="add-btn" onclick="addTrack(\''+t.id+'\',this)" title="Open in Spotify">&#10084;</button>'+
+      '</div>';
+    }).join('');
+
+    row.outerHTML = results;
+  } catch(e) {
+    btn.textContent = 'Error'; btn.disabled = false;
+    showToast('Search failed: '+e.message,'error');
+  }
 }
 
 async function addTrack(trackId, btn) {
@@ -476,8 +511,8 @@ function resetApp() {
   document.getElementById('track-list').innerHTML='';
   document.getElementById('scan-again').style.display='none';
   document.getElementById('ocr-text').textContent='';
-  document.getElementById('artist-input').value='';
-  document.getElementById('song-input').value='';
+  document.getElementById('fields-row').style.display = '';
+  document.getElementById('search-btn').style.display = '';
   window.scrollTo({top:0,behavior:'smooth'});
 }
 </script>
