@@ -408,19 +408,22 @@ function renderTracks(tracks) {
 
 async function addTrack(trackId, btn) {
   btn.innerHTML='&#10084;'; btn.classList.add('done');
-  // On Android/mobile opens Spotify app directly on that track
-  // On desktop opens Spotify web player
+  // Get the track name and artist from the button's parent row
+  var row    = btn.closest('.track-item');
+  var name   = row ? row.querySelector('.track-name').textContent : '';
+  var artist = row ? row.querySelector('.track-sub').textContent.split('·')[0].trim() : '';
+  var query  = encodeURIComponent(artist + ' ' + name);
+  // Open Spotify search — no autoplay, tap ⋯ then ❤️ to save
   var isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
   if (isMobile) {
-    window.location.href = 'spotify:track:' + trackId;
+    window.location.href = 'spotify:search:' + encodeURIComponent(artist + ' ' + name);
     setTimeout(function() {
-      // Fallback to web if app not installed
-      window.open('https://open.spotify.com/track/' + trackId, '_blank');
+      window.open('https://open.spotify.com/search/' + query, '_blank');
     }, 1500);
   } else {
-    window.open('https://open.spotify.com/track/' + trackId, '_blank');
+    window.open('https://open.spotify.com/search/' + query, '_blank');
   }
-  showToast('Opening in Spotify — tap ❤️ to save','success');
+  showToast('Opening Spotify search — tap ⋯ then ❤️','success');
 }
 
 async function sGet(path) {
