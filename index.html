@@ -443,22 +443,20 @@ async function searchAndOpen(artist, song, btn) {
 
 async function addTrack(trackId, btn) {
   btn.innerHTML='&#10084;'; btn.classList.add('done');
-  // Get the track name and artist from the button's parent row
   var row    = btn.closest('.track-item');
   var name   = row ? row.querySelector('.track-name').textContent : '';
   var artist = row ? row.querySelector('.track-sub').textContent.split('·')[0].trim() : '';
   var query  = encodeURIComponent(artist + ' ' + name);
-  // Open Spotify search — no autoplay, tap ⋯ then ❤️ to save
-  var isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
-  if (isMobile) {
-    window.location.href = 'spotify:search:' + encodeURIComponent(artist + ' ' + name);
-    setTimeout(function() {
-      window.open('https://open.spotify.com/search/' + query, '_blank');
-    }, 1500);
-  } else {
-    window.open('https://open.spotify.com/search/' + query, '_blank');
-  }
-  showToast('Opening Spotify search — tap ⋯ then ❤️','success');
+  // Open Spotify app on both desktop and mobile using spotify: URI
+  // Falls back to web player if Spotify app not installed
+  var appUri  = 'spotify:search:' + encodeURIComponent(artist + ' ' + name);
+  var webUri  = 'https://open.spotify.com/search/' + query;
+  // Try app first, fall back to web after delay if app not found
+  window.location.href = appUri;
+  setTimeout(function() {
+    window.open(webUri, '_blank');
+  }, 2000);
+  showToast('Opening Spotify — tap ⋯ then ❤️ to save','success');
 }
 
 async function sGet(path) {
